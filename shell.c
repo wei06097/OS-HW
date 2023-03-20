@@ -11,14 +11,15 @@ int main(void) {
     while (should_run) {
         int need_to_wait = 1;
         int index = 0;
-        char *buff = (char *)malloc(MAX_INPUT);
-        char *p;
+        char *p, buff[MAX_INPUT];
         /* reading user input */
         printf("\033[33mosh>\033[0m ");
+        fflush(stdout);
         gets(buff);
         /* split to args */
         p = strtok(buff, " ");
         args[index] = p;
+        if (args[index] == NULL) continue;
         while (1) {
             p = strtok(NULL, " ");
             if (p == NULL) break;
@@ -51,9 +52,6 @@ int main(void) {
                 else printf("[1]%d\n", pid);
             }
         }
-        /* release resources */
-        free(buff);
-        fflush(stdout);
     }
     return 0;
 }
