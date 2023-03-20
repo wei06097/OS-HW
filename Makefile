@@ -4,7 +4,7 @@ shell: shell.c
 wait: wait.c
 	gcc wait.c -o wait
 	
-clean : shell
+clean: shell
 	rm shell
 
 all: clean shell
