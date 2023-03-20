@@ -14,7 +14,7 @@ int main(void) {
         char *buff = (char *)malloc(MAX_INPUT);
         char *p;
         /* reading user input */
-        printf("\033[33m\44shell>\033[0m ");
+        printf("\033[33mosh>\033[0m ");
         gets(buff);
         /* split to args */
         p = strtok(buff, " ");
@@ -33,19 +33,23 @@ int main(void) {
         * (1) fork a child process using fork()
         * (2) the child process will invoke execv()
         * (3) if command included &, parent will invoke wait() */
-        pid_t pid;
-        pid = fork();
-        if (pid < 0) {
-            fprintf(stderr, "Fork Failed\n");
-            return 1;
-        } else if (pid == 0) {
-            if (execvp(args[0], args)) {
-                fprintf(stderr, "Invalid Command\n");
-                return 1;
-            }
+        if (strcmp(args[0], "exit") == 0) {
+            should_run = 0;
         } else {
-            if (need_to_wait) while(wait(NULL) != pid);
-            else printf("[1]%d\n", pid);
+            pid_t pid;
+            pid = fork();
+            if (pid < 0) {
+                fprintf(stderr, "Fork Failed\n");
+                return 1;
+            } else if (pid == 0) {
+                if (execvp(args[0], args)) {
+                    fprintf(stderr, "Invalid Command\n");
+                    return 1;
+                }
+            } else {
+                if (need_to_wait) while(wait(NULL) != pid);
+                else printf("[1]%d\n", pid);
+            }
         }
         /* release resources */
         free(buff);
