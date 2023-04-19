@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     if (argc != 4) {
         fprintf(stderr, "參數數量錯誤\n");
         return -1;
-	}
+    }
     int sleepTime = atoi(argv[1]);
     int producerNumber = atoi(argv[2]);
     int consumerNumber = atoi(argv[3]);
@@ -100,8 +100,8 @@ int insert_item(buffer_item item) {
         in = (in + 1) % BUFFER_SIZE;
         counter++;
     } else {
-	    successful = -1;
-	}
+        successful = -1;
+    }
     pthread_mutex_unlock(&mutex);
     sem_post(&full);
     return successful;	
