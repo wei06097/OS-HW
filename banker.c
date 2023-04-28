@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <pthread.h>
 
+/* sleep 1~5s */
+#define SLEEP_TIME 5
 /* these may be any values >= 0 */
 #define NUMBER_OF_CUSTOMERS 5
 #define NUMBER_OF_RESOURCES 3
@@ -47,11 +49,11 @@ int main(int argc, char *argv[]) {
     /* 建立 customer threads */
     pthread_t tid[NUMBER_OF_CUSTOMERS];
     int customer_numer[NUMBER_OF_CUSTOMERS];
-    for(int i=0; i<NUMBER_OF_CUSTOMERS; i++) {
+    for (int i=0; i<NUMBER_OF_CUSTOMERS; i++) {
         customer_numer[i] = i;
         pthread_create(&(tid[i]), NULL, runner, &customer_numer[i]);
     }
-    for(int i=0; i<NUMBER_OF_CUSTOMERS; i++) {
+    for (int i=0; i<NUMBER_OF_CUSTOMERS; i++) {
         pthread_join(tid[i], NULL);
     }
 
@@ -82,7 +84,7 @@ void showResources() {
 void *runner(void *arg) {
     int customer_num = *(int *)arg;
     while (1) {
-        sleep(rand() % 10 + 1);
+        sleep(rand() % SLEEP_TIME + 1);
         /* 亂數產生 request 數量 */
         int request[NUMBER_OF_RESOURCES];
         for (int i=0; i<NUMBER_OF_RESOURCES; i++) {
@@ -102,7 +104,7 @@ void *runner(void *arg) {
             continue;
         }
 
-        sleep(rand() % 10 + 1);
+        sleep(rand() % SLEEP_TIME + 1);
         /*　亂數產生 release 數量 */
         int release[NUMBER_OF_RESOURCES];
         for (int i=0; i<NUMBER_OF_RESOURCES; i++) {
@@ -173,43 +175,58 @@ bool isSafe() {
 
 /* ======================================== */
 int release_resources(int customer_num, int release[]) {
+    int granted = 0;
+    pthread_mutex_lock(&lock);
+
     /* 檢查 release 是否大於 allocation (不合法) */
     for (int i=0; i<NUMBER_OF_RESOURCES; i++) {
-        if (release[i] - allocation[customer_num][i] > 0) return -1;
+        if (release[i] - allocation[customer_num][i] > 0) granted = -1;
+        if (granted == -1) break;
     }
-    pthread_mutex_lock(&lock);
-    /* release recollection */
-    for (int i=0; i<NUMBER_OF_RESOURCES; i++) {
-        allocation[customer_num][i] -= release[i];
-        available[i] += release[i];
+
+    /* 合法 => release recollection */
+    if (granted == 0) {
+        for (int i=0; i<NUMBER_OF_RESOURCES; i++) {
+            allocation[customer_num][i] -= release[i];
+            need[customer_num][i] += release[i];
+            available[i] += release[i];
+        }
     }
+
     pthread_mutex_unlock(&lock);
-    return 0;
+    return granted;
 }
 
 int request_resources(int customer_num, int request[]) {
+    int granted = 0;
+    pthread_mutex_lock(&lock);
+
     /* 檢查 request 是否大於 available 和 need (不合法) */
     for (int i=0; i<NUMBER_OF_RESOURCES; i++) {
-        if (request[i] - available[i] > 0) return -1;
-        if (request[i] - need[customer_num][i] > 0) return -1;
+        if (request[i] - available[i] > 0) granted = -1;
+        if (request[i] - need[customer_num][i] > 0) granted = -1;
+        if (granted == -1) break;
     }
-    pthread_mutex_lock(&lock);
-    /* 假設性試算(假設同意) */
-    for (int i=0; i<NUMBER_OF_RESOURCES; i++) {
-        available[i] -= request[i];
-        need[customer_num][i] -= request[i];
-        allocation[customer_num][i] += request[i];
-    }
-    int granted = 0;
-    if (!isSafe()) {
-        /* Unsafe => 改回來 */
-        granted = -1;
+
+    /* 合法 => safety algorithm */
+    if (granted == 0) {
+        /* 假設性試算(假設同意) */
         for (int i=0; i<NUMBER_OF_RESOURCES; i++) {
-            available[i] += request[i];
-            need[customer_num][i] += request[i];
-            allocation[customer_num][i] -= request[i];
+            available[i] -= request[i];
+            need[customer_num][i] -= request[i];
+            allocation[customer_num][i] += request[i];
+        }
+        /* Unsafe => 改回來 */
+        if (!isSafe()) {
+            granted = -1;
+            for (int i=0; i<NUMBER_OF_RESOURCES; i++) {
+                available[i] += request[i];
+                need[customer_num][i] += request[i];
+                allocation[customer_num][i] -= request[i];
+            }
         }
     }
+
     pthread_mutex_unlock(&lock);
     return granted;
 }
