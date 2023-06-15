@@ -35,6 +35,15 @@ int main(int argc, char *argv[]) {
     // for (int i=0; i<index0; i++) printf("%s\n", args0[i]);
     // for (int i=0; i<index1; i++) printf("%s\n", args1[i]);
 
+    if (args1[0] == NULL) {
+        int ret = execvp(args0[0], args0);
+        if (ret == -1) {
+            fprintf(stderr, "syntax error");
+            return -1;
+        }
+        return 0;
+    }
+
     int fd[2];
     if (pipe(fd) == -1) {
         fprintf(stderr, "Pipe failed");
@@ -52,7 +61,7 @@ int main(int argc, char *argv[]) {
         close(fd[1]);
         int ret = execvp(args0[0], args0);
         if (ret == -1) {
-            fprintf(stderr, "Fork failed");
+            fprintf(stderr, "syntax error");
             return -1;
         }
     } else { /* parent process */
@@ -62,7 +71,7 @@ int main(int argc, char *argv[]) {
         close(fd[0]);
         int ret = execvp(args1[0], args1);
         if (ret == -1) {
-            fprintf(stderr, "Fork failed");
+            fprintf(stderr, "syntax error");
             return -1;
         }
     }
